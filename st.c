@@ -2000,7 +2000,7 @@ strhandle(void)
 		case 1:
 		case 2:
 			if (narg > 1)
-				xsettitle(STRESCARGREST(1));
+				xsettitle(STRESCARGREST(1), 0);
 			return;
 		case 52:
 			if (narg > 2 && allowwindowops) {
@@ -2062,7 +2062,7 @@ strparse(void)
 	while (strescseq.narg < STR_ARG_SIZ) {
 		while ((c = *p) != ';' && c != '\0')
 			p++;
-		strescseq.args[strescseq.narg++] = p;
+		strescseq.argp[strescseq.narg++] = p;
 		if (c == '\0')
 			return;
 		p++;
