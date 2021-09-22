@@ -1536,9 +1536,13 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
 	r.height = win.ch;
 	r.width = width;
 	XftDrawSetClipRectangles(xw.draw, winx, winy, &r, 1);
-
-	/* Render the glyphs. */
-	XftDrawGlyphFontSpec(xw.draw, fg, specs, len);
+	
+	if (base.mode & ATTR_BOXDRAW) {
+		drawboxes(winx, winy, width / len, win.ch, fg, bg, specs, len);
+	} else {
+		/* Render the glyphs. */
+		XftDrawGlyphFontSpec(xw.draw, fg, specs, len);
+	}
 
 	/* Render underline and strikethrough. */
 	if (base.mode & ATTR_UNDERLINE) {
