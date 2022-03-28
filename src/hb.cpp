@@ -1,11 +1,14 @@
+#define Glyph Glyph_
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include <X11/Xft/Xft.h>
 #include <hb.h>
 #include <hb-ft.h>
+#undef Glyph
 
 #include "st.h"
+#include "con/con.hpp"
 
 #define FEATURE(c1, c2, c3, c4)                                                                                                                                                    \
     {                                                                                                                                                                              \
@@ -81,7 +84,7 @@ void hbtransform(XftGlyphFontSpec* specs, Glyph const* glyphs, size_t len, int x
             continue;
         }
 
-        if (specs[specidx].font != specs[start].font || ATTRCMP(glyphs[gstart], glyphs[idx]) || selected(x + idx, y) != selected(x + gstart, y))
+        if (specs[specidx].font != specs[start].font || ATTRCMP(glyphs[gstart], glyphs[idx]) /*|| selected(x + idx, y) != selected(x + gstart, y)*/)
         {
             hbtransformsegment(specs[start].font, glyphs, codepoints, gstart, length);
 

@@ -3,9 +3,18 @@
  * MIT/X Consortium License
  */
 
+#define Glyph Glyph_
 #include <X11/Xft/Xft.h>
+#undef Glyph
 #include "st.h"
+#include "con/con.hpp"
 #include "boxdraw_data.h"
+
+int    isboxdraw(Rune);
+ushort boxdrawindex(Glyph const*);
+
+/* config.h globals */
+extern int const      boxdraw, boxdraw_bold, boxdraw_braille;
 
 extern unsigned short const boxdata[256];
 

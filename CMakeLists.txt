@@ -8,8 +8,17 @@ endif()
 
 add_executable(st WIN32
     src/st.cpp
+    src/utf8.cpp
 
-    src/pty.cpp
+    src/con/term.cpp
+    src/con/selection.cpp
+    src/con/tty.cpp
+    src/con/escape.cpp
+
+    #src/pty.cpp
+    #src/term.cpp
+    #src/select.cpp
+    #src/escape.cpp
     
     src/boxdraw.cpp
     src/boxdraw_data.c

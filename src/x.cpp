@@ -1,4 +1,5 @@
 /* See LICENSE for license details. */
+#define Glyph Glyph_
 #include <errno.h>
 #include <math.h>
 #include <limits.h>
@@ -15,6 +16,7 @@
 #include <X11/Xft/Xft.h>
 #include <X11/XKBlib.h>
 #include <X11/Xcursor/Xcursor.h>
+#undef Glyph
 
 char* argv0;
 #include "arg.h"
@@ -22,7 +24,8 @@ char* argv0;
 #include "win.h"
 #include "hb_.h"
 
-#include "pty.hpp"
+#include "con/con.hpp"
+#include "time.hpp"
 
 #include <array>
 
@@ -78,6 +81,8 @@ static void zoomabs(Arg const*);
 static void zoomreset(Arg const*);
 static void ttysend(Arg const*);
 
+#undef IS_SET
+
 /* config.h for applying patches and the configuration. */
 #include "config.h"
 
@@ -93,6 +98,8 @@ static void ttysend(Arg const*);
 #define TRUERED(x) (((x)&0xff0000) >> 8)
 #define TRUEGREEN(x) (((x)&0xff00))
 #define TRUEBLUE(x) (((x)&0xff) << 8)
+
+Con con;
 
 typedef XftDraw*         Draw;
 typedef XftColor         Color;
@@ -353,7 +360,7 @@ void zoomreset(Arg const* arg)
 
 void ttysend(Arg const* arg)
 {
-    ttywrite(arg->s, strlen(arg->s), 1);
+    con.ttywrite({arg->s, strlen(arg->s)}, 1);
 }
 
 int evcol(XEvent* e)
@@ -383,9 +390,9 @@ void mousesel(XEvent* e, int done)
             break;
         }
     }
-    selextend(evcol(e), evrow(e), seltype, done);
+    con.selextend(evcol(e), evrow(e), seltype, done);
     if (done)
-        setsel(getsel(), e->xbutton.time);
+        setsel(con.getsel(), e->xbutton.time);
 }
 
 void mousereport(XEvent* e)
@@ -456,7 +463,7 @@ void mousereport(XEvent* e)
         return;
     }
 
-    ttywrite(buf, len, 0);
+    con.ttywrite({buf, (size_t)len}, 0);
 }
 
 uint buttonmask(uint button)
@@ -526,7 +533,7 @@ void bpress(XEvent* e)
         xsel.tclick2 = xsel.tclick1;
         xsel.tclick1 = now;
 
-        selstart(evcol(e), evrow(e), snap);
+        con.selstart(evcol(e), evrow(e), snap);
     }
 }
 
@@ -612,10 +619,10 @@ void selnotify(XEvent* e)
         }
 
         if (IS_SET(MODE_BRCKTPASTE) && ofs == 0)
-            ttywrite("\033[200~", 6, 0);
-        ttywrite((char*)data, nitems * format / 8, 1);
+            con.ttywrite("\033[200~", 0);
+        con.ttywrite({(char*)data, nitems * format / 8}, 1);
         if (IS_SET(MODE_BRCKTPASTE) && rem == 0)
-            ttywrite("\033[201~", 6, 0);
+            con.ttywrite("\033[201~", 0);
         XFree(data);
         /* number of 32-bit chunks returned */
         ofs += nitems * format / 32;
@@ -636,7 +643,7 @@ void xclipcopy(void)
 
 void selclear_(XEvent* e)
 {
-    selclear();
+    con.selclear();
 }
 
 void selrequest(XEvent* e)
@@ -708,7 +715,7 @@ void setsel(char* str, Time t)
 
     XSetSelectionOwner(xw.dpy, XA_PRIMARY, xw.win, t);
     if (XGetSelectionOwner(xw.dpy, XA_PRIMARY) != xw.win)
-        selclear();
+        con.selclear();
 }
 
 void xsetsel(char* str)
@@ -758,9 +765,9 @@ void cresize(int width, int height)
     win.hborderpx = (win.w - col * win.cw) / 2;
     win.vborderpx = (win.h - row * win.ch) / 2;
 
-    tresize(col, row);
+    con.tresize(col, row);
     xresize(col, row);
-    ttyresize(win.tw, win.th);
+    con.ttyresize(win.tw, win.th);
 }
 
 void xresize(int col, int row)
@@ -824,7 +831,7 @@ void xloadcols(void)
     else
     {
         dc.collen = MAX(LEN(colorname), 256);
-        dc.col    = (Color*)xmalloc(dc.collen * sizeof(Color));
+        dc.col    = xmalloc<Color>(dc.collen * sizeof(Color));
     }
 
     for (i = 0; i < dc.collen; i++)
@@ -1199,7 +1206,7 @@ void xinit(int cols, int rows)
     XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, win.w, win.h);
 
     /* font spec buffer */
-    xw.specbuf = (GlyphFontSpec*)xmalloc(cols * sizeof(GlyphFontSpec));
+    xw.specbuf = xmalloc<GlyphFontSpec>(cols * sizeof(GlyphFontSpec));
 
     /* Xft rendering context */
     xw.draw = XftDrawCreate(xw.dpy, xw.buf, xw.vis, xw.cmap);
@@ -1674,7 +1681,7 @@ void xdrawglyphfontspecs(XftGlyphFontSpec const* specs, Glyph base, int len, int
             if (npoints >= 3)
             {
                 // We add an aditional slot in case we use a bonus point
-                XPoint* points = (XPoint*)xmalloc(sizeof(XPoint) * (npoints + 1));
+                auto points = xmalloc<XPoint>(sizeof(XPoint) * (npoints + 1));
 
                 // First point (Starts with the word bounds)
                 points[0] = XPoint{.x = short(wx + marginStart), .y = short((isSlopeRising(wx, 0, ww)) ? (wy - marginStart + ww / 2.f) : (wy + marginStart))};
@@ -1925,7 +1932,7 @@ void xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og, Line line, i
     XRenderColor colbg;
 
     /* remove the old cursor */
-    if (selected(ox, oy))
+    if (con.selected(ox, oy))
         og.mode ^= ATTR_REVERSE;
 
     /* Redraw the line where cursor was previously.
@@ -1944,7 +1951,7 @@ void xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og, Line line, i
     {
         g.mode |= ATTR_REVERSE;
         g.bg = defaultfg;
-        if (selected(cx, cy))
+        if (con.selected(cx, cy))
         {
             drawcol = dc.col[defaultcs];
             g.fg    = defaultrcs;
@@ -1957,7 +1964,7 @@ void xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og, Line line, i
     }
     else
     {
-        if (selected(cx, cy))
+        if (con.selected(cx, cy))
         {
             g.fg = defaultfg;
             g.bg = defaultrcs;
@@ -2091,7 +2098,7 @@ void xdrawline(Line line, int x1, int y1, int x2)
         new_ = line[x];
         if (new_.mode == ATTR_WDUMMY)
             continue;
-        if (selected(x, y1))
+        if (con.selected(x, y1))
             new_.mode ^= ATTR_REVERSE;
         if (i > 0 && ATTRCMP(base, new_))
         {
@@ -2205,7 +2212,7 @@ void focus(XEvent* ev)
         win.mode |= MODE_FOCUSED;
         xseturgency(0);
         if (IS_SET(MODE_FOCUS))
-            ttywrite("\033[I", 3, 0);
+            con.ttywrite("\033[I", 0);
     }
     else
     {
@@ -2213,7 +2220,7 @@ void focus(XEvent* ev)
             XUnsetICFocus(xw.ime.xic);
         win.mode &= ~MODE_FOCUSED;
         if (IS_SET(MODE_FOCUS))
-            ttywrite("\033[O", 3, 0);
+            con.ttywrite("\033[O", 0);
     }
 }
 
@@ -2291,7 +2298,7 @@ void kpress(XEvent* ev)
     /* 2. custom keys from config.h */
     if ((customkey = (char*)kmap(ksym, e->state)))
     {
-        ttywrite(customkey, strlen(customkey), 1);
+        con.ttywrite(customkey, 1);
         return;
     }
 
@@ -2315,7 +2322,7 @@ void kpress(XEvent* ev)
             len    = 2;
         }
     }
-    ttywrite(buf, len, 1);
+    con.ttywrite({buf, (size_t)len}, 1);
 }
 
 void cmessage(XEvent* e)
@@ -2338,7 +2345,7 @@ void cmessage(XEvent* e)
     }
     else if (e->xclient.data.l[0] == xw.wmdeletewin)
     {
-        ttyhangup();
+        con.ttyhangup();
         exit(0);
     }
 }
@@ -2352,7 +2359,6 @@ void resize(XEvent* e)
 }
 
 int tinsync(uint);
-int ttyread_pending();
 
 void run(void)
 {
@@ -2382,23 +2388,23 @@ void run(void)
     }
     while (ev.type != MapNotify);
 
-    auto pty = pty::create(/*opt_line,*/ shell, /*opt_io,*/ (char const**)opt_cmd);
+    auto pty = con.ttynew(opt_line, shell, opt_io, opt_cmd);
     cresize(w, h);
 
     for (timeout = -1, drawing = 0, lastblink = (struct timespec){0};;)
     {
         FD_ZERO(&rfd);
-        FD_SET(pty.output, &rfd);
+        FD_SET(con.pty.output, &rfd);
         FD_SET(xfd, &rfd);
 
-        if (XPending(xw.dpy) || ttyread_pending())
+        if (XPending(xw.dpy) || con.ttyread_pending())
             timeout = 0; /* existing events might not set xfd */
 
         seltv.tv_sec  = timeout / 1E3;
         seltv.tv_nsec = 1E6 * (timeout - 1E3 * seltv.tv_sec);
         tv            = timeout >= 0 ? &seltv : NULL;
 
-        if (pselect(MAX(xfd, pty.output) + 1, &rfd, NULL, NULL, tv, NULL) < 0)
+        if (pselect(MAX(xfd, con.pty.output) + 1, &rfd, NULL, NULL, tv, NULL) < 0)
         {
             if (errno == EINTR)
                 continue;
@@ -2406,9 +2412,9 @@ void run(void)
         }
         clock_gettime(CLOCK_MONOTONIC, &now);
 
-        int ttyin = FD_ISSET(pty.output, &rfd) || ttyread_pending();
+        int ttyin = FD_ISSET(con.pty.output, &rfd) || con.ttyread_pending();
         if (ttyin)
-            ttyread();
+            con.ttyread();
 
         xev = 0;
         while (XPending(xw.dpy))
@@ -2459,7 +2465,7 @@ void run(void)
 
         /* idle detected or maxlatency exhausted -> draw */
         timeout = -1;
-        if (blinktimeout && tattrset(ATTR_BLINK))
+        if (blinktimeout && con.tattrset(ATTR_BLINK))
         {
             timeout = blinktimeout - TIMEDIFF(now, lastblink);
             if (timeout <= 0)
@@ -2467,7 +2473,7 @@ void run(void)
                 if (-timeout > blinktimeout) /* start visible */
                     win.mode |= MODE_BLINK;
                 win.mode ^= MODE_BLINK;
-                tsetdirtattr(ATTR_BLINK);
+                con.tsetdirtattr(ATTR_BLINK);
                 lastblink = now;
                 timeout   = blinktimeout;
             }
@@ -2557,10 +2563,10 @@ run:
     XSetLocaleModifiers("");
     cols = MAX(cols, 1);
     rows = MAX(rows, 1);
-    tnew(cols, rows);
+    con.tnew(cols, rows);
     xinit(cols, rows);
     xsetenv();
-    selinit();
+    con.selinit();
     run();
 
     return 0;

@@ -1,5 +1,13 @@
 #include "pty.hpp"
 #include "support.hpp"
+#include "term.hpp"
+
+#include "st.h"
+
+extern char const* stty_args;
+extern char const* termname;
+extern char const* utmp;
+extern char const* scroll;
 
 #if !defined(_WIN32)
 #include <ctype.h>
@@ -42,12 +50,32 @@ void sigchld(int a)
     _exit(0);
 }
 
+void stty(char** args)
+{
+    char   cmd[_POSIX_ARG_MAX], **p, *q, *s;
+    size_t n, siz;
+
+    if ((n = strlen(stty_args)) > sizeof(cmd) - 1)
+        die("incorrect stty parameters\n");
+    memcpy(cmd, stty_args, n);
+    q   = cmd + n;
+    siz = sizeof(cmd) - n;
+    for (p = args; p && (s = *p); ++p)
+    {
+        if ((n = strlen(s)) > siz - 1)
+            die("stty parameter length too long\n");
+        *q++ = ' ';
+        memcpy(q, s, n);
+        q += n;
+        siz -= n + 1;
+    }
+    *q = '\0';
+    if (system(cmd) != 0)
+        perror("Couldn't call stty");
+}
+
 #define DEFAULT(a, b) (a) = (a) ? (a) : (b)
 #endif
-
-extern char const* termname;
-extern char const* utmp;
-extern char const* scroll;
 
 pty pty::create(std::string shell, char const** args)
 {
@@ -217,4 +245,138 @@ void pty::resize(int row, int col, int tw, int th)
     if (ioctl(output, TIOCSWINSZ, &w) < 0)
         fprintf(stderr, "Couldn't set window size: %s\n", strerror(errno));
 #endif
+}
+
+extern int twrite_aborted;
+
+int pty::read_pending()
+{
+    return twrite_aborted;
+}
+
+size_t pty::read(Term& term)
+{
+    static char buf[BUFSIZ];
+    static int  buflen = 0;
+    int         ret, written;
+
+    /* append read bytes to unprocessed bytes */
+    ret = twrite_aborted ? 1 : ::read(output, buf + buflen, LEN(buf) - buflen);
+
+    switch (ret)
+    {
+    case 0:
+        exit(0);
+    case -1:
+        die("couldn't read from shell: %s\n", strerror(errno));
+    default:
+        buflen += twrite_aborted ? 0 : ret;
+        written = term.write(buf, buflen, 0);
+        buflen -= written;
+        /* keep any incomplete UTF-8 byte sequence for the next call */
+        if (buflen > 0)
+            memmove(buf, buf + written, buflen);
+        return ret;
+    }
+}
+
+void pty::write(Term& term, std::string_view s, bool may_echo)
+{
+    char const* next;
+    Arg         arg = Arg{.i = term.scr};
+
+    kscrolldown(&arg);
+
+    if (may_echo && term.IS_SET(MODE_ECHO))
+        term.write(s, s.size(), 1);
+
+    if (!term.IS_SET(MODE_CRLF))
+    {
+        write_raw(term, s);
+        return;
+    }
+
+    /* This is similar to how the kernel handles ONLCR for ttys */
+    while (!s.empty())
+    {
+        if (s[0] == '\r')
+        {
+            next = s.data() + 1;
+            write_raw(term, "\r\n");
+        }
+        else
+        {
+            next = (char const*)memchr(s.data(), '\r', s.size());
+            DEFAULT(next, s.data() + s.size());
+            write_raw(term, s.substr(0, next - s.data()));
+        }
+        s = next;
+    }
+}
+
+void pty::write_raw(Term& term, std::string_view s)
+{
+    fd_set  wfd, rfd;
+    ssize_t r;
+    size_t  lim = 256;
+
+    /*
+     * Remember that we are using a pty, which might be a modem line.
+     * Writing too much will clog the line. That's why we are doing this
+     * dance.
+     * FIXME: Migrate the world to Plan 9.
+     */
+    while (!s.empty())
+    {
+        FD_ZERO(&wfd);
+        FD_ZERO(&rfd);
+        FD_SET(output, &wfd);
+        FD_SET(output, &rfd);
+
+        /* Check if we can write. */
+        if (pselect(output + 1, &rfd, &wfd, NULL, NULL, NULL) < 0)
+        {
+            if (errno == EINTR)
+                continue;
+            die("select failed: %s\n", strerror(errno));
+        }
+        if (FD_ISSET(output, &wfd))
+        {
+            /*
+             * Only write the bytes written by ttywrite() or the
+             * default of 256. This seems to be a reasonable value
+             * for a serial line. Bigger values might clog the I/O.
+             */
+            if ((r = ::write(output, s.data(), (s.size() < lim) ? s.size() : lim)) < 0)
+                goto write_error;
+            if (r < s.size())
+            {
+                /*
+                 * We weren't able to write out everything.
+                 * This means the buffer is getting full
+                 * again. Empty it.
+                 */
+                if (s.size() < lim)
+                    lim = read(term);
+                s = s.substr(r);
+            }
+            else
+            {
+                /* All bytes have been written. */
+                break;
+            }
+        }
+        if (FD_ISSET(output, &rfd))
+            lim = read(term);
+    }
+    return;
+
+write_error:
+    die("write error on tty: %s\n", strerror(errno));
+}
+
+void pty::hangup()
+{
+    /* Send SIGHUP to shell */
+    kill(pid, SIGHUP);
 }

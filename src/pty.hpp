@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 #if !defined(_WIN32)
 #include <pwd.h>
@@ -43,6 +44,8 @@ namespace winrt
 
 #endif
 
+struct Term;
+
 struct pty
 {
     pid_t  process;
@@ -56,4 +59,10 @@ struct pty
     static pty create(std::string shell, char const** args);
 
     void resize(int row, int col, int tw, int th);
+
+    int    read_pending();
+    size_t read(Term&);
+    void   write(Term&, std::string_view, bool);
+    void   write_raw(Term&, std::string_view);
+    void   hangup();
 };

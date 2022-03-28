@@ -1,4 +1,5 @@
 /* See LICENSE for license details. */
+#include "con/types.hpp"
 
 enum win_mode
 {
