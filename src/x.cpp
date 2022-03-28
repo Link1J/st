@@ -2358,8 +2358,6 @@ void resize(XEvent* e)
     cresize(e->xconfigure.width, e->xconfigure.height);
 }
 
-int tinsync(uint);
-
 void run(void)
 {
     XEvent          ev;
