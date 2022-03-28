@@ -7,6 +7,8 @@
 #include "st.h"
 #include "boxdraw_data.h"
 
+extern unsigned short const boxdata[256];
+
 /* Rounded non-negative integers division of n / d  */
 #define DIV(n, d) (((n) + (d) / 2) / (d))
 

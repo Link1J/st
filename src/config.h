@@ -5,8 +5,8 @@
  *
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
-static char* font     = "Cascadia Code PL:pixelsize=12:antialias=true:autohint=false";
-static int   borderpx = 0;
+static char const* font     = "Cascadia Code PL:pixelsize=12:antialias=true:autohint=false";
+static int         borderpx = 0;
 
 /*
  * What program is execed by st depends of these precedence rules:
@@ -16,14 +16,14 @@ static int   borderpx = 0;
  * 4: value of shell in /etc/passwd
  * 5: value of shell in config.h
  */
-static char* shell = "/bin/sh";
-char*        utmp  = NULL;
+static char const* shell = "/bin/sh";
+char const*        utmp  = NULL;
 /* scroll program: to enable use a string like "scroll" */
-char* scroll    = NULL;
-char* stty_args = "stty raw pass8 nl -echo -iexten -cstopb 38400";
+char const* scroll    = NULL;
+char const* stty_args = "stty raw pass8 nl -echo -iexten -cstopb 38400";
 
 /* identification sequence returned in DA and DECID */
-char* vtiden = "\033[?6c";
+char const* vtiden = "\033[?6c";
 
 /* Kerning / character bounding-box multipliers */
 static float cwscale = 1.0;
@@ -34,7 +34,7 @@ static float chscale = 1.0;
  *
  * More advanced example: L" `'\"()[]{}"
  */
-wchar_t* worddelimiters = L" ";
+wchar_t const* worddelimiters = L" ";
 
 /* selection timeouts (in milliseconds) */
 static unsigned int doubleclicktimeout = 300;
@@ -92,7 +92,7 @@ int const boxdraw_braille = 1;
 static int bellvolume = 50;
 
 /* default TERM value */
-char* termname = "st-256color";
+char const* termname = "st-256color";
 
 /*
  * spaces per tab
@@ -136,13 +136,253 @@ static char const* colorname[] = {
     "#61D6D6", // cyan
     "#FFFFFF", // white
 
-    [255] = 0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    //[255] = 0,
 
     /* more colors can be added after 255 to use with DefaultXX */
     "#202020",
     "#404040",
     "#202020",
 };
+static_assert(std::size(colorname) >= 255);
 
 /*
  * Default colors (colorname index)
@@ -172,7 +412,7 @@ static unsigned int rows = 41;
 /*
  * Default shape of the mouse cursor
  */
-static char* mouseshape = "xterm";
+static char const* mouseshape = "xterm";
 
 /*
  * Color used to display font attributes when fontconfig selected a font which
@@ -238,7 +478,7 @@ static Shortcut shortcuts[] = {
  * If you want keys other than the X11 function keys (0xFD00 - 0xFFFF)
  * to be mapped below, add them to this array.
  */
-static KeySym mappedkeys[] = {-1};
+static KeySym mappedkeys[] = {(KeySym)-1};
 
 /*
  * State bits to ignore when matching key or button events.  By default,
@@ -471,7 +711,9 @@ static Key key[] = {
  * If no match is found, regular selection is used.
  */
 static uint selmasks[] = {
-    [SEL_RECTANGULAR] = Mod1Mask,
+    0,
+    0,
+    /*[SEL_RECTANGULAR] =*/ Mod1Mask,
 };
 
 /*

@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <sys/types.h>
+#include <vector>
 
 /* macros */
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -75,7 +76,7 @@ typedef struct
     int      ucolor[3]; /* underline color */
 } Glyph;
 
-typedef Glyph* Line;
+typedef std::vector<Glyph> Line;
 
 typedef union
 {
@@ -102,7 +103,7 @@ void   tnew(int, int);
 void   tresize(int, int);
 void   tsetdirtattr(int);
 void   ttyhangup(void);
-int    ttynew(char*, char*, char*, char**);
+int    ttynew(char*, char const*, char*, char**);
 size_t ttyread(void);
 void   ttyresize(int, int);
 void   ttywrite(char const*, size_t, int);
@@ -131,16 +132,16 @@ void drawboxes(int, int, int, int, XftColor*, XftColor*, XftGlyphFontSpec const*
 #endif
 
 /* config.h globals */
-extern char*        utmp;
-extern char*        scroll;
-extern char*        stty_args;
-extern char*        vtiden;
-extern wchar_t*     worddelimiters;
-extern int          allowaltscreen;
-extern int          allowwindowops;
-extern char*        termname;
-extern unsigned int tabspaces;
-extern unsigned int defaultfg;
-extern unsigned int defaultbg;
-extern float        alpha;
-extern int const    boxdraw, boxdraw_bold, boxdraw_braille;
+extern char const*    utmp;
+extern char const*    scroll;
+extern char const*    stty_args;
+extern char const*    vtiden;
+extern wchar_t const* worddelimiters;
+extern int            allowaltscreen;
+extern int            allowwindowops;
+extern char const*    termname;
+extern unsigned int   tabspaces;
+extern unsigned int   defaultfg;
+extern unsigned int   defaultbg;
+extern float          alpha;
+extern int const      boxdraw, boxdraw_bold, boxdraw_braille;
