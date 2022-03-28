@@ -35,6 +35,7 @@ enum glyph_attribute
     ATTR_WDUMMY         = 1 << 10,
     ATTR_BOXDRAW        = 1 << 11,
     ATTR_LIGA           = 1 << 12,
+    ATTR_SIXEL          = 1 << 13,
     ATTR_DIRTYUNDERLINE = 1 << 15,
     ATTR_BOLD_FAINT     = ATTR_BOLD | ATTR_FAINT,
 };
@@ -48,6 +49,7 @@ enum mode
     MODE_ECHO      = 1 << 4,
     MODE_PRINT     = 1 << 5,
     MODE_UTF8      = 1 << 6,
+    MODE_SIXEL     = 1 << 7,
 };
 
 enum cursor_movement
@@ -65,13 +67,14 @@ enum cursor_state
 
 enum escape_state
 {
-    ESC_START      = 1,  //
-    ESC_CSI        = 2,  //
-    ESC_STR        = 4,  // DCS, OSC, PM, APC
-    ESC_ALTCHARSET = 8,  //
-    ESC_STR_END    = 16, // a final string was encountered
-    ESC_TEST       = 32, // Enter in test mode
-    ESC_UTF8       = 64, //
+    ESC_START      = 1,   //
+    ESC_CSI        = 2,   //
+    ESC_STR        = 4,   // OSC, PM, APC
+    ESC_ALTCHARSET = 8,   //
+    ESC_STR_END    = 16,  // a final string was encountered
+    ESC_TEST       = 32,  // Enter in test mode
+    ESC_UTF8       = 64,  //
+    ESC_DCS        = 128, //
 };
 
 enum charset

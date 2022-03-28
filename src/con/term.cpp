@@ -413,7 +413,7 @@ void Con::tsetattr(int* attr, int l)
             term.c.attr.mode ^= ATTR_DIRTYUNDERLINE;
             break;
         case 5: /* slow blink */
-                /* FALLTHROUGH */
+            [[fallthrough]];
         case 6: /* rapid blink */
             term.c.attr.mode |= ATTR_BLINK;
             break;
@@ -585,7 +585,7 @@ void Con::tsetmode(int priv, int set, int* args, int narg)
                 if (!allowaltscreen)
                     break;
                 tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
-                /* FALLTHROUGH */
+                [[fallthrough]];
             case 47: /* swap screen */
             case 1047:
                 if (!allowaltscreen)
@@ -599,7 +599,7 @@ void Con::tsetmode(int priv, int set, int* args, int narg)
                     tswapscreen();
                 if (*args != 1049)
                     break;
-                /* FALLTHROUGH */
+                [[fallthrough]];
             case 1048:
                 tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
                 break;
@@ -749,22 +749,27 @@ void Con::tdectest(char c)
 
 void Con::tstrsequence(uchar c)
 {
+    strreset();
+
     switch (c)
     {
     case 0x90: /* DCS -- Device Control String */
         c = 'P';
         break;
+
     case 0x9f: /* APC -- Application Program Command */
         c = '_';
         break;
+
     case 0x9e: /* PM -- Privacy Message */
         c = '^';
         break;
+
     case 0x9d: /* OSC -- Operating System Command */
         c = ']';
         break;
     }
-    strreset();
+
     strescseq.type = c;
     term.esc |= ESC_STR;
 }
@@ -776,65 +781,74 @@ void Con::tcontrolcode(uchar ascii)
     case '\t': /* HT */
         tputtab(1);
         return;
+
     case '\b': /* BS */
         tmoveto(term.c.x - 1, term.c.y);
         return;
+
     case '\r': /* CR */
         tmoveto(0, term.c.y);
         return;
+
     case '\f': /* LF */
     case '\v': /* VT */
     case '\n': /* LF */
         /* go to first col if the mode is set */
         tnewline(IS_SET(MODE_CRLF));
         return;
+
     case '\a': /* BEL */
         if (term.esc & ESC_STR_END)
-        {
             /* backwards compatibility to xterm */
             strhandle();
-        }
         else
-        {
             xbell();
-        }
         break;
+
     case '\033': /* ESC */
         csireset();
         term.esc &= ~(ESC_CSI | ESC_ALTCHARSET | ESC_TEST);
         term.esc |= ESC_START;
         return;
+
     case '\016': /* SO (LS1 -- Locking shift 1) */
     case '\017': /* SI (LS0 -- Locking shift 0) */
         term.charset = 1 - (ascii - '\016');
         return;
+
     case '\032': /* SUB */
         tsetchar('?', &term.c.attr, term.c.x, term.c.y);
-        /* FALLTHROUGH */
+        [[fallthrough]];
     case '\030': /* CAN */
         csireset();
         break;
+
     case '\005': /* ENQ (IGNORED) */
     case '\000': /* NUL (IGNORED) */
     case '\021': /* XON (IGNORED) */
     case '\023': /* XOFF (IGNORED) */
     case 0177:   /* DEL (IGNORED) */
         return;
+
     case 0x80: /* TODO: PAD */
     case 0x81: /* TODO: HOP */
     case 0x82: /* TODO: BPH */
     case 0x83: /* TODO: NBH */
     case 0x84: /* TODO: IND */
         break;
+
     case 0x85:       /* NEL -- Next line */
         tnewline(1); /* always go to first col */
         break;
+
     case 0x86: /* TODO: SSA */
     case 0x87: /* TODO: ESA */
         break;
+
     case 0x88: /* HTS -- Horizontal tab stop */
         term.tabs[term.c.x] = 1;
         break;
+
     case 0x89: /* TODO: HTJ */
     case 0x8a: /* TODO: VTS */
     case 0x8b: /* TODO: PLD */
@@ -852,12 +866,15 @@ void Con::tcontrolcode(uchar ascii)
     case 0x98: /* TODO: SOS */
     case 0x99: /* TODO: SGCI */
         break;
+
     case 0x9a: /* DECID -- Identify Terminal */
         ttywrite(vtiden, 0);
         break;
+
     case 0x9b: /* TODO: CSI */
     case 0x9c: /* TODO: ST */
         break;
+
     case 0x90: /* DCS -- Device Control String */
     case 0x9d: /* OSC -- Operating System Command */
     case 0x9e: /* PM -- Privacy Message */
@@ -880,7 +897,7 @@ int Con::twrite(std::string_view buf, int show_ctrl)
 
     for (n = 0; n < buf.size(); n += charsize)
     {
-        if (IS_SET(MODE_UTF8))
+        if (IS_SET(MODE_UTF8) && !IS_SET(MODE_SIXEL))
         {
             /* process a complete utf8 char */
             charsize = utf8decode(buf.data() + n, u, buf.size() - n);
@@ -945,11 +962,6 @@ void Con::tresize(int col, int row)
     {
         memmove(term.line.data(), term.line.data() + i, row * sizeof(Line));
         memmove(term.alt.data(), term.alt.data() + i, row * sizeof(Line));
-    }
-    for (i = row; i < term.row; i++)
-    {
-        term.line[i].~vector();
-        term.alt[i].~vector();
     }
 
     /* resize to new height */
@@ -1017,13 +1029,15 @@ void Con::tresize(int col, int row)
 
 void Con::tputc(Rune u)
 {
+    static std::string sixel;
+
     char   c[UTF_SIZ];
     int    control;
     int    width, len;
     Glyph* gp;
 
     control = ISCONTROL(u);
-    if (u < 127 || !IS_SET(MODE_UTF8))
+    if (u < 127 || !IS_SET(MODE_UTF8 | MODE_SIXEL))
     {
         c[0]  = u;
         width = len = 1;
@@ -1048,10 +1062,26 @@ void Con::tputc(Rune u)
     {
         if (u == '\a' || u == 030 || u == 032 || u == 033 || ISCONTROLC1(u))
         {
-            term.esc &= ~(ESC_START | ESC_STR);
+            term.esc &= ~(ESC_START | ESC_STR | ESC_DCS);
+            if (IS_SET(MODE_SIXEL))
+            {
+                /* TODO: render sixel */
+                sixel.clear();
+                term.mode &= ~MODE_SIXEL;
+                return;
+            }
             term.esc |= ESC_STR_END;
             goto check_control_code;
         }
+
+        if (IS_SET(MODE_SIXEL))
+        {
+            /* TODO: implement sixel mode */
+            sixel += (char)u;
+            return;
+        }
+        if ((term.esc & ESC_DCS) != 0 && strescseq.len == 0 && u == 'q')
+            term.mode |= MODE_SIXEL;
 
         if (strescseq.len + len >= strescseq.siz)
         {

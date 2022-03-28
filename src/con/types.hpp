@@ -1,13 +1,14 @@
 #pragma once
 #include "../support.hpp"
 #include "../utf8.hpp"
+#include "enum.hpp"
 
 constexpr auto ESC_BUF_SIZ = (128 * UTF_SIZ);
 constexpr auto ESC_ARG_SIZ = 16;
 constexpr auto CAR_PER_ARG = 4;
 constexpr auto STR_BUF_SIZ = ESC_BUF_SIZ;
 constexpr auto STR_ARG_SIZ = ESC_ARG_SIZ;
-constexpr auto HISTSIZE = 2000;
+constexpr auto HISTSIZE    = 2000;
 
 #include <vector>
 #include <array>
@@ -57,12 +58,13 @@ namespace winrt
 
 struct Glyph
 {
-    Rune     u;         // character code
-    ushort   mode;      // attribute flags
-    uint32_t fg;        // foreground
-    uint32_t bg;        // background
-    int      ustyle;    // underline style
-    int      ucolor[3]; // underline color
+    Rune                  u;          // character code
+    ushort                mode;       // attribute flags
+    uint32_t              fg;         // foreground
+    uint32_t              bg;         // background
+    int                   ustyle;     // underline style
+    int                   ucolor[3];  // underline color
+    std::vector<uint32_t> sixel_data; // sixel data
 };
 
 using Line = std::vector<Glyph>;

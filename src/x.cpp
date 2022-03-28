@@ -2088,16 +2088,22 @@ int xstartdraw(void)
 void xdrawline(Line line, int x1, int y1, int x2)
 {
     int               i, x, ox, numspecs;
-    Glyph             base, new_;
+    Glyph             base;
     XftGlyphFontSpec* specs = xw.specbuf;
 
     numspecs = xmakeglyphfontspecs(specs, &line[x1], x2 - x1, x1, y1);
     i = ox = 0;
     for (x = x1; x < x2 && i < numspecs; x++)
     {
-        new_ = line[x];
+        auto& new_ = line[x];
         if (new_.mode == ATTR_WDUMMY)
             continue;
+
+        if (new_.mode == ATTR_SIXEL)
+        {
+            continue;
+        }
+
         if (con.selected(x, y1))
             new_.mode ^= ATTR_REVERSE;
         if (i > 0 && ATTRCMP(base, new_))

@@ -399,7 +399,7 @@ void Con::strhandle()
             if (narg < 3)
                 break;
             p = STRESCARGJUST(2);
-            /* FALLTHROUGH */
+            [[fallthrough]];
         case 104: /* color reset, here p = NULL */
             j = (narg > 1) ? atoi(STRESCARGJUST(1)) : -1;
             if (xsetcolorname(j, p))
@@ -416,6 +416,14 @@ void Con::strhandle()
                  */
                 redraw();
             }
+            return;
+
+        case 11:
+            ttywrite("11;rgb:ffff/ffff/ffff", 1);
+            return;
+
+        case 10:
+            ttywrite("10;rgb:0000/0000/0000", 1);
             return;
         }
         break;
@@ -529,6 +537,8 @@ int Con::eschandle(uchar ascii)
         return 0;
 
     case 'P': /* DCS -- Device Control String */
+        term.esc |= ESC_DCS;
+        [[fallthrough]];
     case '_': /* APC -- Application Program Command */
     case '^': /* PM -- Privacy Message */
     case ']': /* OSC -- Operating System Command */

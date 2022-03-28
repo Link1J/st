@@ -23,7 +23,7 @@ char const* scroll    = NULL;
 char const* stty_args = "stty raw pass8 nl -echo -iexten -cstopb 38400";
 
 /* identification sequence returned in DA and DECID */
-char const* vtiden = "\033[?6c";
+char const* vtiden = "\033[?63;4";
 
 /* Kerning / character bounding-box multipliers */
 static float cwscale = 1.0;
