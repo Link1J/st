@@ -1213,9 +1213,7 @@ void xinit(int cols, int rows)
 
     /* input methods */
     if (!ximopen(xw.dpy))
-    {
         XRegisterIMInstantiateCallback(xw.dpy, NULL, NULL, NULL, ximinstantiate, NULL);
-    }
 
     /* white cursor, black outline */
     cursor = XcursorLibraryLoadCursor(xw.dpy, mouseshape);
@@ -2085,6 +2083,45 @@ int xstartdraw(void)
     return IS_SET(MODE_VISIBLE);
 }
 
+void xdrawsixel()
+{
+    for (auto& image : con.term.images)
+    {
+        if (image.drawable == nullptr)
+        {
+            auto depth    = DefaultDepth(xw.dpy, xw.scr);
+            auto drawable = XCreatePixmap(xw.dpy, xw.win, image.width, image.height, depth);
+
+            XImage ximage{
+                .width            = int(image.width),
+                .height           = int(image.height),
+                .xoffset          = 0,
+                .format           = ZPixmap,
+                .data             = (char*)image.data.data(),
+                .byte_order       = LSBFirst,
+                .bitmap_unit      = 32,
+                .bitmap_bit_order = MSBFirst,
+                .bitmap_pad       = 32,
+                .depth            = depth,
+                .bytes_per_line   = int(image.width * 4),
+                .bits_per_pixel   = 32,
+            };
+
+            XPutImage(xw.dpy, drawable, dc.gc, &ximage, 0, 0, 0, 0, image.width, image.height);
+            XFlush(xw.dpy);
+            image.drawable = (void*)drawable;
+        }
+
+        if (con.term.top <= image.y && image.y < con.term.bot)
+        {
+            XGCValues gcvalues = {0};
+            auto      gc       = XCreateGC(xw.dpy, xw.win, 0, &gcvalues);
+            XCopyArea(xw.dpy, (Drawable)image.drawable, xw.buf, gc, 0, 0, image.width, image.height, win.hborderpx + image.x * win.cw, win.vborderpx + image.y * win.ch);
+            XFreeGC(xw.dpy, gc);
+        }
+    }
+}
+
 void xdrawline(Line line, int x1, int y1, int x2)
 {
     int               i, x, ox, numspecs;
@@ -2098,11 +2135,6 @@ void xdrawline(Line line, int x1, int y1, int x2)
         auto& new_ = line[x];
         if (new_.mode == ATTR_WDUMMY)
             continue;
-
-        if (new_.mode == ATTR_SIXEL)
-        {
-            continue;
-        }
 
         if (con.selected(x, y1))
             new_.mode ^= ATTR_REVERSE;
