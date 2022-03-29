@@ -82,20 +82,27 @@ struct Selection
     int mode;
     int type;
     int snap;
+    int alt;
 
-    /*
-     * Selection variables:
-     * nb – normalized coordinates of the beginning of the selection
-     * ne – normalized coordinates of the end of the selection
-     * ob – original coordinates of the beginning of the selection
-     * oe – original coordinates of the end of the selection
-     */
+    // Selection variables:
+    // nb – normalized coordinates of the beginning of the selection
+    // ne – normalized coordinates of the end of the selection
+    // ob – original coordinates of the beginning of the selection
+    // oe – original coordinates of the end of the selection
     struct
     {
         int x, y;
     } nb, ne, ob, oe;
+};
 
-    int alt;
+struct Image
+{
+    size_t                x;                  //
+    size_t                y;                  //
+    size_t                width;              //
+    size_t                height;             //
+    std::vector<uint32_t> data;               //
+    void*                 drawable = nullptr; //
 };
 
 struct Term
@@ -120,6 +127,7 @@ struct Term
     int                        icharset; // selected charset for sequence
     std::vector<int>           tabs;     //
     Rune                       lastc;    // last printed char outside of sequence, 0 if control
+    std::vector<Image>         images;   //
 };
 
 // CSI Escape sequence structs

@@ -1,6 +1,8 @@
 #include "con.hpp"
 #include "../win.h"
 
+extern TermWindow win;
+
 int Con::tlinelen(int y)
 {
     int i = term.col;
@@ -1027,6 +1029,8 @@ void Con::tresize(int col, int row)
     term.c = c;
 }
 
+#include "sixel.hpp"
+
 void Con::tputc(Rune u)
 {
     static std::string sixel;
@@ -1062,14 +1066,26 @@ void Con::tputc(Rune u)
     {
         if (u == '\a' || u == 030 || u == 032 || u == 033 || ISCONTROLC1(u))
         {
-            term.esc &= ~(ESC_START | ESC_STR | ESC_DCS);
             if (IS_SET(MODE_SIXEL))
             {
-                /* TODO: render sixel */
-                sixel.clear();
                 term.mode &= ~MODE_SIXEL;
+                Image new_image{
+                    .x = static_cast<size_t>(term.c.x),
+                    .y = static_cast<size_t>(term.c.y),
+                };
+                std::tie(new_image.data, new_image.width, new_image.height) = parse_sixel(sixel);
+
+                sixel.clear();
+                term.images.push_back(new_image);
+
+                for (size_t i = 0; i < (new_image.height + win.ch - 1) / win.ch; ++i)
+                {
+                    tclearregion(term.c.x, term.c.y, term.c.x + (new_image.width + win.cw - 1) / win.cw, term.c.y);
+                    tnewline(1);
+                }
                 return;
             }
+            term.esc &= ~(ESC_START | ESC_STR | ESC_DCS);
             term.esc |= ESC_STR_END;
             goto check_control_code;
         }

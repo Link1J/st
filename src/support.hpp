@@ -73,3 +73,26 @@ inline char* xstrdup(char* s)
         die("strdup: %s\n", strerror(errno));
     return s;
 }
+
+/*
+template<typename T>
+T* xmalloc(size_t len);
+
+template<typename T>
+T* xmalloc<T*>(size_t len)
+{
+    auto p = (T*)malloc(len);
+    if (p == nullptr)
+        die("malloc: %s\n", strerror(errno));
+    return p;
+}
+
+template<typename T>
+T* xmalloc<T[]>(size_t count)
+{
+    auto p = (T*)malloc(sizeof(T) * count);
+    if (p == nullptr)
+        die("malloc: %s\n", strerror(errno));
+    return p;
+}
+*/
