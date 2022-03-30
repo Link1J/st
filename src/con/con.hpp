@@ -2,7 +2,7 @@
 #include "types.hpp"
 #include "enum.hpp"
 
-#include <wchar.h>
+#include <cwchar>
 
 struct Con
 {
@@ -111,3 +111,7 @@ extern unsigned int   defaultfg;
 extern unsigned int   defaultbg;
 extern float          alpha;
 extern int const      boxdraw, boxdraw_bold, boxdraw_braille;
+
+#if defined(_WIN32)
+extern "C" int wcwidth(wchar_t);
+#endif

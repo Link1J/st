@@ -17,20 +17,12 @@ add_executable(st WIN32
     src/st.cpp
     src/utf8.cpp
 
+    src/boxdraw_data.c
+
     src/con/term.cpp
     src/con/selection.cpp
     src/con/tty.cpp
     src/con/escape.cpp
-
-    #src/pty.cpp
-    #src/term.cpp
-    #src/select.cpp
-    #src/escape.cpp
-    
-    src/boxdraw.cpp
-    src/boxdraw_data.c
-    src/hb.cpp
-    src/x.cpp
 )
 
 target_compile_definitions(st PRIVATE "VERSION=\"${PROJECT_VERSION}\"")
@@ -43,7 +35,27 @@ target_link_libraries(st PRIVATE
     ljh::ljh
 )
 
+
+
 if(WIN32)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(st PUBLIC
+            -Xclang -fcoroutines-ts
+        )
+        target_compile_definitions(st PRIVATE
+            __cpp_lib_coroutine
+        )
+    endif()
+
+    target_sources(st PRIVATE
+        src/win/wcwidth.cpp
+        src/win/x.cpp
+    )
+    target_compile_definitions(st PRIVATE 
+        NOMINMAX
+        _CRT_SECURE_NO_WARNINGS
+        strdup=_strdup
+    )
     target_link_libraries(st PRIVATE
         Dwrite.lib
         Kernel32.lib
@@ -51,6 +63,12 @@ if(WIN32)
 endif()
 
 if(LINUX)
+    target_sources(st PRIVATE
+        src/linux/boxdraw.cpp
+        src/linux/hb.cpp
+        src/linux/x.cpp
+    )
+
     find_package(PkgConfig REQUIRED)
     find_package(X11 REQUIRED)
     find_package(Fontconfig REQUIRED)

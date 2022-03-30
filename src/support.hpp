@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <errno.h>
-#include <unistd.h>
+#include <type_traits>
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) < (b) ? (b) : (a))
@@ -32,26 +32,18 @@ inline void die(char const* errstr, ...)
     exit(1);
 }
 
-inline ssize_t xwrite(int fd, char const* s, size_t len)
-{
-    size_t  aux = len;
-    ssize_t r;
-
-    while (len > 0)
-    {
-        r = write(fd, s, len);
-        if (r < 0)
-            return r;
-        len -= r;
-        s += r;
-    }
-
-    return aux;
-}
-
 template<typename T>
-T* xmalloc(size_t len)
+auto xmalloc(size_t len)
 {
+    constexpr auto temp = []{
+        if constexpr (!(std::is_unbounded_array_v<T> || std::is_pointer_v<T>))
+            throw 1;
+        return 0;
+    };
+
+    if constexpr (std::is_unbounded_array_v<T>)
+        len = sizeof(T) * len;
+
     auto p = (T*)malloc(len);
     if (p == nullptr)
         die("malloc: %s\n", strerror(errno));
@@ -74,25 +66,23 @@ inline char* xstrdup(char* s)
     return s;
 }
 
-/*
-template<typename T>
-T* xmalloc(size_t len);
+#if !defined(_WIN32)
+#include <unistd.h>
 
-template<typename T>
-T* xmalloc<T*>(size_t len)
+inline ssize_t xwrite(int fd, char const* s, size_t len)
 {
-    auto p = (T*)malloc(len);
-    if (p == nullptr)
-        die("malloc: %s\n", strerror(errno));
-    return p;
-}
+    size_t  aux = len;
+    ssize_t r;
 
-template<typename T>
-T* xmalloc<T[]>(size_t count)
-{
-    auto p = (T*)malloc(sizeof(T) * count);
-    if (p == nullptr)
-        die("malloc: %s\n", strerror(errno));
-    return p;
+    while (len > 0)
+    {
+        r = write(fd, s, len);
+        if (r < 0)
+            return r;
+        len -= r;
+        s += r;
+    }
+
+    return aux;
 }
-*/
+#endif

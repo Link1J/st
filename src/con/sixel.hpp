@@ -17,8 +17,8 @@ template<typename T, typename C>
 [[nodiscard]] T take_from_chars(std::basic_string_view<C>& data, std::nullptr_t = nullptr)
 {
     T    output;
-    auto res = std::from_chars(data.begin(), data.end(), output);
-    data.remove_prefix(res.ptr - data.begin());
+    auto res = std::from_chars(data.data(), data.data() + data.size(), output);
+    data.remove_prefix(res.ptr - data.data());
     return output;
 }
 

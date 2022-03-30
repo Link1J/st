@@ -29,34 +29,6 @@ char* argv0;
 
 #include <array>
 
-/* types used in config.h */
-typedef struct
-{
-    uint   mod;
-    KeySym keysym;
-    void (*func)(Arg const*);
-    const Arg arg;
-} Shortcut;
-
-typedef struct
-{
-    uint mod;
-    uint button;
-    void (*func)(Arg const*);
-    const Arg arg;
-    uint      release;
-} MouseShortcut;
-
-typedef struct
-{
-    KeySym      k;
-    uint        mask;
-    char const* s;
-    /* three-valued logic variables: 0 indifferent, 1 on, -1 off */
-    signed char appkey;    /* application keypad */
-    signed char appcursor; /* application cursor */
-} Key;
-
 /* Undercurl slope types */
 enum undercurl_slope_type
 {
@@ -98,8 +70,6 @@ static void ttysend(Arg const*);
 #define TRUERED(x) (((x)&0xff0000) >> 8)
 #define TRUEGREEN(x) (((x)&0xff00))
 #define TRUEBLUE(x) (((x)&0xff) << 8)
-
-Con con;
 
 typedef XftDraw*         Draw;
 typedef XftColor         Color;
@@ -213,41 +183,34 @@ static int         match(uint, uint);
 static void run(void);
 static void usage(void);
 
-static std::array<void (*)(XEvent*), LASTEvent> handler = {
-    0,
-    0,
+static std::array<std::function<void(XEvent*)>, LASTEvent> handler = {
+    // clang-format off
+    nullptr, nullptr,
     /*[KeyPress]         =*/kpress,
-    0,
+    nullptr,
     /*[ButtonPress]      =*/bpress,
     /*[ButtonRelease]    =*/brelease,
     /*[MotionNotify]     =*/bmotion,
-    0,
-    0,
+    nullptr,
+    nullptr,
     /*[FocusIn]          =*/focus,
     /*[FocusOut]         =*/focus,
-    0,
+    nullptr,
     /*[Expose]           =*/expose,
-    0,
-    0,
+    nullptr, nullptr,
     /*[VisibilityNotify] =*/visibility,
-    0,
-    0,
+    nullptr, nullptr,
     /*[UnmapNotify]      =*/unmap,
-    0,
-    0,
-    0,
+    nullptr, nullptr, nullptr,
     /*[ConfigureNotify]  =*/resize,
-    0,
-    0,
-    0,
-    0,
-    0,
+    nullptr, nullptr, nullptr, nullptr, nullptr,
     /*[PropertyNotify]   =*/propnotify,
     /*[SelectionClear]   =*/selclear_,
     /*[SelectionRequest] =*/selrequest,
     /*[SelectionNotify]  =*/selnotify,
-    0,
+    nullptr,
     /*[ClientMessage]    =*/cmessage,
+    // clang-format on
 };
 
 /* Globals */
@@ -255,6 +218,7 @@ static DC         dc;
 static XWindow    xw;
 static XSelection xsel;
 TermWindow        win;
+Con               con;
 static int        tstki;                      /* title stack index */
 static char*      titlestack[TITLESTACKSIZE]; /* title stack */
 
@@ -2292,12 +2256,12 @@ char const* kmap(KeySym k, uint state)
         if (!match(kp->mask, state))
             continue;
 
-        if (IS_SET(MODE_APPKEYPAD) ? kp->appkey < 0 : kp->appkey > 0)
+        if (IS_SET(MODE_APPKEYPAD) ? kp->appkey < indeterminate : kp->appkey > indeterminate)
             continue;
-        if (IS_SET(MODE_NUMLOCK) && kp->appkey == 2)
+        if (IS_SET(MODE_NUMLOCK) && kp->appkey == double_true)
             continue;
 
-        if (IS_SET(MODE_APPCURSOR) ? kp->appcursor < 0 : kp->appcursor > 0)
+        if (IS_SET(MODE_APPCURSOR) ? kp->appcursor < indeterminate : kp->appcursor > indeterminate)
             continue;
 
         return kp->s;

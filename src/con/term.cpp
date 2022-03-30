@@ -651,12 +651,14 @@ void Con::tsetmode(int priv, int set, int* args, int narg)
 
 void Con::tprinter(char const* s, size_t len)
 {
+#if !defined(_WIN32)
     if (iofd != -1 && xwrite(iofd, s, len) < 0)
     {
         perror("Error writing to output file");
         close(iofd);
         iofd = -1;
     }
+#endif
 }
 void Con::tdumpsel(void)
 {

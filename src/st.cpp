@@ -3,38 +3,43 @@
 #include "win.h"
 #include "con/con.hpp"
 
-#include <termios.h>
-#include <unistd.h>
-
 static void drawregion(int, int, int, int);
 
 extern Con        con;
 extern TermWindow win;
 
-void sendbreak(Arg const* arg)
+#if !defined(_WIN32)
+#include <termios.h>
+#include <unistd.h>
+
+void sendbreak(Arg const& arg)
 {
     if (tcsendbreak(con.pty.output, 0))
         perror("Error sending break");
 }
+#else
+void sendbreak(Arg const& arg)
+{}
+#endif
 
-void toggleprinter(Arg const* arg)
+void toggleprinter(Arg const& arg)
 {
     con.term.mode ^= MODE_PRINT;
 }
 
-void printscreen(Arg const* arg)
+void printscreen(Arg const& arg)
 {
     con.tdump();
 }
 
-void printsel(Arg const* arg)
+void printsel(Arg const& arg)
 {
     con.tdumpsel();
 }
 
-void kscrolldown(Arg const* a)
+void kscrolldown(Arg const& a)
 {
-    int n = a->i;
+    int n = std::get<int>(a);
 
     if (n < 0)
         n = con.term.row + n;
@@ -50,9 +55,9 @@ void kscrolldown(Arg const* a)
     }
 }
 
-void kscrollup(Arg const* a)
+void kscrollup(Arg const& a)
 {
-    int n = a->i;
+    int n = std::get<int>(a);
 
     if (n < 0)
         n = con.term.row + n;
@@ -62,28 +67,6 @@ void kscrollup(Arg const* a)
         con.term.scr += n;
         con.selscroll(0, n);
         con.tfulldirt();
-    }
-}
-
-void readcolonargs(char** p, int cursor, int params[][CAR_PER_ARG])
-{
-    int i = 0;
-    for (; i < CAR_PER_ARG; i++)
-        params[cursor][i] = -1;
-
-    if (**p != ':')
-        return;
-
-    char* np = NULL;
-    i        = 0;
-
-    while (**p == ':' && i < CAR_PER_ARG)
-    {
-        while (**p == ':')
-            (*p)++;
-        params[cursor][i] = strtol(*p, &np, 10);
-        *p                = np;
-        i++;
     }
 }
 
