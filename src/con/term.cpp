@@ -1101,7 +1101,7 @@ void Con::tputc(Rune u)
         if ((term.esc & ESC_DCS) != 0 && strescseq.len == 0 && u == 'q')
             term.mode |= MODE_SIXEL;
 
-        if (strescseq.len + len >= strescseq.siz)
+        if (strescseq.len + len >= strescseq.buf.length())
         {
             /*
              * Here is a bug in terminals. If the user never sends
@@ -1116,13 +1116,14 @@ void Con::tputc(Rune u)
              * term.esc = 0;
              * strhandle();
              */
-            if (strescseq.siz > (SIZE_MAX - UTF_SIZ) / 2)
+            if (strescseq.buf.length() > (SIZE_MAX - UTF_SIZ) / 2)
                 return;
-            strescseq.siz *= 2;
-            strescseq.buf = (char*)xrealloc(strescseq.buf, strescseq.siz);
+            strescseq.buf.resize(strescseq.buf.length() * 2);
         }
 
-        memmove(&strescseq.buf[strescseq.len], c, len);
+        strescseq.buf.resize(strescseq.buf.length() + len);
+        for (int a = 0; a < len; a++)
+            strescseq.buf[strescseq.len + a] = c[a];
         strescseq.len += len;
         return;
     }

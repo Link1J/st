@@ -30,12 +30,11 @@ target_include_directories(st PRIVATE src)
 set_target_properties(st PROPERTIES
     C_STANDARD 17
     CXX_STANDARD 23
+    CXX_EXTENSIONS NO
 )
 target_link_libraries(st PRIVATE
     ljh::ljh
 )
-
-
 
 if(WIN32)
     if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -82,6 +81,9 @@ if(LINUX)
         m rt util ${harfbuzz_LIBRARIES}
     )
     target_compile_options(st PRIVATE -Werror -fdiagnostics-color)
+
+    target_compile_options(st PRIVATE -fno-omit-frame-pointer -fsanitize=address)
+    target_link_options(st PRIVATE -fno-omit-frame-pointer -fsanitize=address)
 
     include(GNUInstallDirs)
 

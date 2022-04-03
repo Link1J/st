@@ -18,6 +18,9 @@
 #include <X11/Xcursor/Xcursor.h>
 #undef Glyph
 
+/* config.h for applying patches and the configuration. */
+#include "config.hpp"
+
 char* argv0;
 #include "arg.h"
 #include "st.h"
@@ -43,20 +46,7 @@ enum undercurl_slope_type
 #define XK_NO_MOD 0
 #define XK_SWITCH_MOD (1 << 13)
 
-/* function definitions used in config.h */
-static void clipcopy(Arg const*);
-static void clippaste(Arg const*);
-static void numlock(Arg const*);
-static void selpaste(Arg const*);
-static void zoom(Arg const*);
-static void zoomabs(Arg const*);
-static void zoomreset(Arg const*);
-static void ttysend(Arg const*);
-
 #undef IS_SET
-
-/* config.h for applying patches and the configuration. */
-#include "config.h"
 
 /* size of title stack */
 #define TITLESTACKSIZE 8
@@ -128,8 +118,7 @@ typedef struct
 /* Drawing Context */
 typedef struct
 {
-    Color* col;
-    size_t collen;
+    std::vector<Color> col;
     Font   font, bfont, ifont, ibfont;
     GC     gc;
 } DC;
@@ -261,7 +250,7 @@ static int oldbutton = 3; /* button event on startup: 3 = release */
 static Cursor cursor;
 static XColor xmousefg, xmousebg;
 
-void clipcopy(Arg const* dummy)
+void clipcopy(Arg const& dummy)
 {
     Atom clipboard;
 
@@ -276,7 +265,7 @@ void clipcopy(Arg const* dummy)
     }
 }
 
-void clippaste(Arg const* dummy)
+void clippaste(Arg const& dummy)
 {
     Atom clipboard;
 
@@ -284,47 +273,48 @@ void clippaste(Arg const* dummy)
     XConvertSelection(xw.dpy, clipboard, xsel.xtarget, clipboard, xw.win, CurrentTime);
 }
 
-void selpaste(Arg const* dummy)
+void selpaste(Arg const& dummy)
 {
     XConvertSelection(xw.dpy, XA_PRIMARY, xsel.xtarget, XA_PRIMARY, xw.win, CurrentTime);
 }
 
-void numlock(Arg const* dummy)
+void numlock(Arg const& dummy)
 {
     win.mode ^= MODE_NUMLOCK;
 }
 
-void zoom(Arg const* arg)
+void zoom(Arg const& arg)
 {
     Arg larg;
 
-    larg.f = usedfontsize + arg->f;
-    zoomabs(&larg);
+    larg = usedfontsize + std::get<double>(arg);
+    zoomabs(larg);
 }
 
-void zoomabs(Arg const* arg)
+void zoomabs(Arg const& arg)
 {
     xunloadfonts();
-    xloadfonts((char*)usedfont, arg->f);
+    xloadfonts((char*)usedfont, std::get<double>(arg));
     cresize(0, 0);
     redraw();
     xhints();
 }
 
-void zoomreset(Arg const* arg)
+void zoomreset(Arg const& arg)
 {
     Arg larg;
 
     if (defaultfontsize > 0)
     {
-        larg.f = defaultfontsize;
-        zoomabs(&larg);
+        larg = defaultfontsize;
+        zoomabs(larg);
     }
 }
 
-void ttysend(Arg const* arg)
+void ttysend(Arg const& arg)
 {
-    con.ttywrite({arg->s, strlen(arg->s)}, 1);
+    auto s = std::get<const char*>(arg);
+    con.ttywrite({s, strlen(s)}, 1);
 }
 
 int evcol(XEvent* e)
@@ -344,11 +334,11 @@ int evrow(XEvent* e)
 void mousesel(XEvent* e, int done)
 {
     int  type, seltype = SEL_REGULAR;
-    uint state = e->xbutton.state & ~(Button1Mask | forcemousemod);
+    uint state = e->xbutton.state & ~(Button1Mask | ShiftMask);
 
     for (type = 1; type < LEN(selmasks); ++type)
     {
-        if (match(selmasks[type], state))
+        if (match(ljh::underlying_cast(selmasks[type]), state))
         {
             seltype = type;
             break;
@@ -449,11 +439,11 @@ int mouseaction(XEvent* e, uint release)
 
     for (ms = mshortcuts; ms < mshortcuts + LEN(mshortcuts); ms++)
     {
-        if (ms->release == release && ms->button == e->xbutton.button &&
-            (match(ms->mod, state) || /* exact or forced */
-             match(ms->mod, state & ~forcemousemod)))
+        if (ms->release == release && ljh::underlying_cast(ms->button) == e->xbutton.button &&
+            (match(ljh::underlying_cast(ms->mod), state) || /* exact or forced */
+             match(ljh::underlying_cast(ms->mod), state & ~ShiftMask)))
         {
-            ms->func(&(ms->arg));
+            ms->func(ms->arg);
             return 1;
         }
     }
@@ -466,7 +456,7 @@ void bpress(XEvent* e)
     struct timespec now;
     int             snap;
 
-    if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod))
+    if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & ShiftMask))
     {
         mousereport(e);
         return;
@@ -518,7 +508,7 @@ void selnotify(XEvent* e)
     ulong  nitems, ofs, rem;
     int    format;
     uchar *data, *last, *repl;
-    Atom   type, incratom, property = None;
+    Atom   type, incratom, property = 0;
 
     incratom = XInternAtom(xw.dpy, "INCR", 0);
 
@@ -528,7 +518,7 @@ void selnotify(XEvent* e)
     else if (e->type == PropertyNotify)
         property = e->xproperty.atom;
 
-    if (property == None)
+    if (property == 0)
         return;
 
     do
@@ -602,7 +592,7 @@ void selnotify(XEvent* e)
 
 void xclipcopy(void)
 {
-    clipcopy(NULL);
+    clipcopy(0);
 }
 
 void selclear_(XEvent* e)
@@ -623,11 +613,11 @@ void selrequest(XEvent* e)
     xev.selection = xsre->selection;
     xev.target    = xsre->target;
     xev.time      = xsre->time;
-    if (xsre->property == None)
+    if (xsre->property == 0)
         xsre->property = xsre->target;
 
     /* reject */
-    xev.property = None;
+    xev.property = 0;
 
     xa_targets = XInternAtom(xw.dpy, "TARGETS", 0);
     if (xsre->target == xa_targets)
@@ -689,7 +679,7 @@ void xsetsel(char* str)
 
 void brelease(XEvent* e)
 {
-    if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod))
+    if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & ShiftMask))
     {
         mousereport(e);
         return;
@@ -703,7 +693,7 @@ void brelease(XEvent* e)
 
 void bmotion(XEvent* e)
 {
-    if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod))
+    if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & ShiftMask))
     {
         mousereport(e);
         return;
@@ -789,16 +779,16 @@ void xloadcols(void)
 
     if (loaded)
     {
-        for (cp = dc.col; cp < &dc.col[dc.collen]; ++cp)
-            XftColorFree(xw.dpy, xw.vis, xw.cmap, cp);
+        for (auto& cp : dc.col)
+            XftColorFree(xw.dpy, xw.vis, xw.cmap, &cp);
     }
     else
     {
-        dc.collen = MAX(LEN(colorname), 256);
-        dc.col    = xmalloc<Color>(dc.collen * sizeof(Color));
+        constexpr auto col_size = std::max(LEN(colorname), (size_t)256);
+        dc.col.resize(col_size);
     }
 
-    for (i = 0; i < dc.collen; i++)
+    for (i = 0; i < dc.col.size(); i++)
         if (!xloadcolor(i, NULL, &dc.col[i]))
         {
             if (colorname[i])
@@ -820,7 +810,7 @@ int xsetcolorname(int x, char const* name)
 {
     Color ncolor;
 
-    if (!BETWEEN(x, 0, dc.collen))
+    if (!BETWEEN(x, 0, dc.col.size()))
         return 1;
 
     if (!xloadcolor(x, name, &ncolor))
@@ -1140,7 +1130,7 @@ void xinit(int cols, int rows)
     xloadfonts((char*)usedfont, 0);
 
     /* colors */
-    xw.cmap = XCreateColormap(xw.dpy, parent, xw.vis, None);
+    xw.cmap = XCreateColormap(xw.dpy, parent, xw.vis, 0);
     xloadcols();
 
     /* adjust fixed window geometry */
@@ -1196,9 +1186,9 @@ void xinit(int cols, int rows)
     xhints();
     XMapWindow(xw.dpy, xw.win);
 
-    uint32_t data = 0;
+    std::array<uint32_t, 4> data{0,0,0,0};
     xw.blur       = XInternAtom(xw.dpy, "_KDE_NET_WM_BLUR_BEHIND_REGION", False);
-    XChangeProperty(xw.dpy, xw.win, xw.blur, XA_CARDINAL, 32, PropModeReplace, (_Xconst unsigned char*)&data, sizeof(data));
+    XChangeProperty(xw.dpy, xw.win, xw.blur, XA_CARDINAL, 32, PropModeReplace, (_Xconst unsigned char*)data.data(), 4);
 
     XSync(xw.dpy, False);
 
@@ -1207,7 +1197,7 @@ void xinit(int cols, int rows)
     xsel.primary   = NULL;
     xsel.clipboard = NULL;
     xsel.xtarget   = XInternAtom(xw.dpy, "UTF8_STRING", 0);
-    if (xsel.xtarget == None)
+    if (xsel.xtarget == 0)
         xsel.xtarget = XA_STRING;
 
     boxdraw_xinit(xw.dpy, xw.cmap, xw.draw, xw.vis);
@@ -1223,7 +1213,7 @@ int xmakeglyphfontspecs(XftGlyphFontSpec* specs, Glyph const* glyphs, int len, i
     Rune       rune;
     FT_UInt    glyphidx;
     FcResult   fcres;
-    FcPattern *fcpattern, *fontpattern;
+    FcPattern* fcpattern,* fontpattern;
     FcFontSet* fcsets[] = {NULL};
     FcCharSet* fccharset;
     int        i, f, numspecs = 0;
@@ -2228,7 +2218,7 @@ void focus(XEvent* ev)
 
 int match(uint mask, uint state)
 {
-    return mask == XK_ANY_MOD || mask == (state & ~ignoremod);
+    return mask == XK_ANY_MOD || mask == (state & ~(Mod2Mask|XK_SWITCH_MOD));
 }
 
 char const* kmap(KeySym k, uint state)
@@ -2253,7 +2243,7 @@ char const* kmap(KeySym k, uint state)
         if (kp->k != k)
             continue;
 
-        if (!match(kp->mask, state))
+        if (!match(ljh::underlying_cast(kp->mask), state))
             continue;
 
         if (IS_SET(MODE_APPKEYPAD) ? kp->appkey < indeterminate : kp->appkey > indeterminate)
@@ -2264,7 +2254,7 @@ char const* kmap(KeySym k, uint state)
         if (IS_SET(MODE_APPCURSOR) ? kp->appcursor < indeterminate : kp->appcursor > indeterminate)
             continue;
 
-        return kp->s;
+        return kp->s.data();
     }
 
     return NULL;
@@ -2290,9 +2280,9 @@ void kpress(XEvent* ev)
     /* 1. shortcuts */
     for (bp = shortcuts; bp < shortcuts + LEN(shortcuts); bp++)
     {
-        if (ksym == bp->keysym && match(bp->mod, e->state))
+        if (ksym == bp->keysym && match(ljh::underlying_cast(bp->mod), e->state))
         {
-            bp->func(&(bp->arg));
+            bp->func(bp->arg);
             return;
         }
     }
@@ -2378,7 +2368,7 @@ void run(void)
          * does filter out the key event and some client message for
          * the input method too.
          */
-        if (XFilterEvent(&ev, None))
+        if (XFilterEvent(&ev, 0))
             continue;
         if (ev.type == ConfigureNotify)
         {
@@ -2421,7 +2411,7 @@ void run(void)
         {
             xev = 1;
             XNextEvent(xw.dpy, &ev);
-            if (XFilterEvent(&ev, None))
+            if (XFilterEvent(&ev, 0))
                 continue;
             if (handler[ev.type])
                 (handler[ev.type])(&ev);

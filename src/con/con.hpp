@@ -36,7 +36,7 @@ struct Con
 
     void csidump(void);
     void csihandle(void);
-    void readcolonargs(char**, int, std::array<std::array<int, ESC_ARG_SIZ>, CAR_PER_ARG>);
+    void readcolonargs(char**, int, std::array<std::array<int, ESC_ARG_SIZ>, CAR_PER_ARG>&);
     void csiparse(void);
     void csireset(void);
     int  eschandle(uchar);
@@ -90,7 +90,7 @@ struct Con
 #define ISCONTROL(c) (ISCONTROLC0(c) || ISCONTROLC1(c))
 #define ISDELIM(u) (u && wcschr(worddelimiters, u))
 #define TLINE(y) ((y) < term.scr ? term.hist[((y) + term.histi - term.scr + HISTSIZE + 1) % HISTSIZE] : term.line[(y)-term.scr])
-#define STRESCARGREST(n) ((n) == 0 ? strescseq.buf : strescseq.argp[(n)-1] + 1)
+#define STRESCARGREST(n) ((n) == 0 ? strescseq.buf.data() : strescseq.argp[(n)-1] + 1)
 #define STRESCARGJUST(n) (*(strescseq.argp[n]) = '\0', STRESCARGREST(n))
 #define ATTRCMP(a, b) (((a).mode & (~ATTR_WRAP) & (~ATTR_LIGA)) != ((b).mode & (~ATTR_WRAP) & (~ATTR_LIGA)) || (a).fg != (b).fg || (a).bg != (b).bg)
 

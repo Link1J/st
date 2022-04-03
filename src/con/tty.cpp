@@ -61,7 +61,9 @@ void execsh(char const* cmd, char** args)
         prog = sh;
         arg  = NULL;
     }
-    DEFAULT(args, ((char*[]){(char*)prog, (char*)arg, NULL}));
+
+    char* temp[] = {(char*)prog, (char*)arg, NULL};
+    DEFAULT(args, temp);
 
     unsetenv("COLUMNS");
     unsetenv("LINES");
@@ -221,9 +223,9 @@ size_t Con::ttyread(void)
 void Con::ttywrite(std::string_view s, int may_echo)
 {
     size_t next;
-    Arg    arg{.i = term.scr};
+    Arg    arg{term.scr};
 
-    kscrolldown(&arg);
+    kscrolldown(arg);
 
     if (may_echo && IS_SET(MODE_ECHO))
         twrite(s, 1);

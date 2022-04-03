@@ -2,6 +2,7 @@
 #include <functional>
 #include <variant>
 #include <string_view>
+#include <climits>
 
 #include <ljh/bitmask_operators.hpp>
 
@@ -180,6 +181,7 @@ enum class ModifierKeys
 #else /* assume X11 */
 #include <X11/X.h>
 #include <X11/keysym.h>
+#undef None
 enum class MouseButtons
 {
     Left             = Button1,
@@ -334,7 +336,7 @@ enum KeyCodes
     NP_Decimal   = XK_KP_Decimal,
     NP_Divide    = XK_KP_Divide,
 };
-enum class ModifierKeys
+enum class ModifierKeys : unsigned int
 {
     Control = ControlMask,
     Shift   = ShiftMask,
@@ -358,7 +360,7 @@ template<>
 struct ljh::bitmask_operators::enable<ModifierKeys> : std::true_type
 {};
 
-using Arg         = std::variant<int, unsigned int, float, void const*, char const*>;
+using Arg         = std::variant<int, unsigned int, double, char const*>;
 using ArgCallback = std::function<void(Arg const&)>;
 
 struct Shortcut

@@ -6,8 +6,8 @@
  *
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
-static char const* font     = "Cascadia Code PL:pixelsize=12:antialias=true:autohint=false";
-static int         borderpx = 0;
+inline char const* font     = "Cascadia Code PL:pixelsize=12:antialias=true:autohint=false";
+inline int         borderpx = 0;
 
 /*
  * What program is execed by st depends of these precedence rules:
@@ -17,36 +17,36 @@ static int         borderpx = 0;
  * 4: value of shell in /etc/passwd
  * 5: value of shell in config.h
  */
-static char const* shell = "/bin/sh";
-char const*        utmp  = NULL;
+inline char const* shell = "/bin/sh";
+inline char const*        utmp  = NULL;
 /* scroll program: to enable use a string like "scroll" */
-char const* scroll    = NULL;
-char const* stty_args = "stty raw pass8 nl -echo -iexten -cstopb 38400";
+inline char const* scroll    = NULL;
+inline char const* stty_args = "stty raw pass8 nl -echo -iexten -cstopb 38400";
 
 /* identification sequence returned in DA and DECID */
-char const* vtiden = "\033[?63;4";
+inline char const* vtiden = "\033[?63;4";
 
 /* Kerning / character bounding-box multipliers */
-static float cwscale = 1.0;
-static float chscale = 1.0;
+inline float cwscale = 1.0;
+inline float chscale = 1.0;
 
 /*
  * word delimiter string
  *
  * More advanced example: L" `'\"()[]{}"
  */
-wchar_t const* worddelimiters = L" ";
+inline wchar_t const* worddelimiters = L" ";
 
 /* selection timeouts (in milliseconds) */
-static unsigned int doubleclicktimeout = 300;
-static unsigned int tripleclicktimeout = 600;
+inline unsigned int doubleclicktimeout = 300;
+inline unsigned int tripleclicktimeout = 600;
 
 /* alt screens */
-int allowaltscreen = 0;
+inline int allowaltscreen = 0;
 
 /* allow certain non-interactive (insecure) window operations such as:
    setting the clipboard text */
-int allowwindowops = 1;
+inline int allowwindowops = 1;
 
 /*
  * draw latency range in ms - from new content/keypress/etc until drawing.
@@ -54,25 +54,25 @@ int allowwindowops = 1;
  * near minlatency, but it waits longer for slow updates to avoid partial draw.
  * low minlatency will tear/flicker more, as it can "detect" idle too early.
  */
-static double minlatency = 8;
-static double maxlatency = 33;
+inline double minlatency = 8;
+inline double maxlatency = 33;
 
 /*
  * Synchronized-Update timeout in ms
  * https://gitlab.com/gnachman/iterm2/-/wikis/synchronized-updates-spec
  */
-static unsigned int su_timeout = 200;
+inline unsigned int su_timeout = 200;
 
 /*
  * blinking timeout (set to 0 to disable blinking) for the terminal blinking
  * attribute.
  */
-static unsigned int blinktimeout = 800;
+inline unsigned int blinktimeout = 800;
 
 /*
  * thickness of underline and bar cursors
  */
-static unsigned int cursorthickness = 2;
+inline unsigned int cursorthickness = 2;
 
 /*
  * 1: render most of the lines/blocks characters without using the font for
@@ -80,20 +80,20 @@ static unsigned int cursorthickness = 2;
  *    Bold affects lines thickness if boxdraw_bold is not 0. Italic is ignored.
  * 0: disable (render all U25XX glyphs normally from the font).
  */
-int const boxdraw      = 1;
-int const boxdraw_bold = 0;
+inline int const boxdraw      = 1;
+inline int const boxdraw_bold = 0;
 
 /* braille (U28XX):  1: render as adjacent "pixels",  0: use font */
-int const boxdraw_braille = 1;
+inline int const boxdraw_braille = 1;
 
 /*
  * bell volume. It must be a value between -100 and 100. Use 0 for disabling
  * it
  */
-static int bellvolume = 50;
+inline int bellvolume = 50;
 
 /* default TERM value */
-char const* termname = "st-256color";
+inline char const* termname = "st-256color";
 
 /*
  * spaces per tab
@@ -110,13 +110,13 @@ char const* termname = "st-256color";
  *
  *	stty tabs
  */
-unsigned int tabspaces = 4;
+inline unsigned int tabspaces = 4;
 
 /* bg opacity */
-float alpha = 0.9;
+inline float alpha = 0.9;
 
 /* Terminal colors (16 first used in escape sequence) */
-static char const* colorname[] = {
+inline char const* colorname[] = {
     /* 8 normal colors */
     "#202020", // black
     "#C50F1F", // red
@@ -157,10 +157,10 @@ static_assert(std::size(colorname) >= 255);
  * Default colors (colorname index)
  * foreground, background, cursor, reverse cursor
  */
-unsigned int        defaultfg  = 15;
-unsigned int        defaultbg  = 258;
-static unsigned int defaultcs  = 256;
-static unsigned int defaultrcs = 257;
+inline unsigned int        defaultfg  = 15;
+inline unsigned int        defaultbg  = 257;
+inline unsigned int defaultcs  = 256;
+inline unsigned int defaultrcs = 257;
 
 /*
  * Default shape of cursor
@@ -169,38 +169,38 @@ static unsigned int defaultrcs = 257;
  * 6: Bar ("|")
  * 7: Snowman ("☃")
  */
-static unsigned int cursorshape = 2;
+inline unsigned int cursorshape = 2;
 
 /*
  * Default columns and rows numbers
  */
 
-static unsigned int cols = 120;
-static unsigned int rows = 41;
+inline unsigned int cols = 120;
+inline unsigned int rows = 41;
 
 /*
  * Default shape of the mouse cursor
  */
-static char const* mouseshape = "xterm";
+inline char const* mouseshape = "xterm";
 
 /*
  * Color used to display font attributes when fontconfig selected a font which
  * doesn't match the ones requested.
  */
-static unsigned int defaultattr = 11;
+inline unsigned int defaultattr = 11;
 
 /*
  * Force mouse select/shortcuts while mask is active (when MODE_MOUSE is set).
  * Note that if you want to use MK::Shift with selmasks, set this to an other
  * modifier, set to 0 to not use it.
  */
-static ModifierKeys forcemousemod = MK::Shift;
+inline ModifierKeys forcemousemod = MK::Shift;
 
 /*
  * Internal mouse shortcuts.
  * Beware that overloading Button1 will disable the selection.
  */
-static MouseShortcut mshortcuts[] = {
+inline MouseShortcut mshortcuts[] = {
     // clang-format off
     /* mask       button               function        argument     release */
     {  MK::Any  , MB::ScrollWheelUp  , kscrollup     , 1          , false   },
@@ -214,7 +214,7 @@ static MouseShortcut mshortcuts[] = {
 };
 
 /* Internal keyboard shortcuts. */
-static Shortcut shortcuts[] = {
+inline Shortcut shortcuts[] = {
     // clang-format off
     /* mask         keysym         function       argument */
     {  MK::Any    , KC::Break    , sendbreak    ,  0       },
@@ -255,13 +255,13 @@ static Shortcut shortcuts[] = {
 
 // If you want keys other than the X11 function keys (0xFD00 - 0xFFFF)
 // to be mapped below, add them to this array.
-static KeyCodes mappedkeys[] = {(KeyCodes)-1};
+inline KeyCodes mappedkeys[] = {(KeyCodes)-1};
 
 /*
  * This is the huge key array which defines all compatibility to the Linux
  * world. Please decide about changes wisely.
  */
-static Key key[] = {
+inline Key key[] = {
     // clang-format off
         /* keysym              mask                                 string        appkey         appcursor    */
         {  KC::NP_Home       , MK::Shift                          , "\033[2J"   , indeterminate, false        },
@@ -483,7 +483,7 @@ static Key key[] = {
  * ButtonRelease and MotionNotify.
  * If no match is found, regular selection is used.
  */
-static ModifierKeys selmasks[] = {
+inline ModifierKeys selmasks[] = {
     MK::None,
     MK::None,
     /*[SEL_RECTANGULAR] =*/MK::Alt,
@@ -493,7 +493,7 @@ static ModifierKeys selmasks[] = {
  * Printable characters in ASCII, used to estimate the advance width
  * of single wide characters.
  */
-static char ascii_printable[] = " !\"#$%&'()*+,-./0123456789:;<=>?"
+inline char ascii_printable[] = " !\"#$%&'()*+,-./0123456789:;<=>?"
                                 "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_"
                                 "`abcdefghijklmnopqrstuvwxyz{|}~";
 

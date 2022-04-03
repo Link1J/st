@@ -146,7 +146,7 @@ void hbtransformsegment(XftFont* xfont, Glyph const* string, hb_codepoint_t* cod
     }
 
     /* Shape the segment. */
-    hb_shape(font, buffer, features, sizeof(features));
+    hb_shape(font, buffer, features, std::size(features));
 
     /* Get new glyph info. */
     hb_glyph_info_t* info = hb_buffer_get_glyph_infos(buffer, NULL);

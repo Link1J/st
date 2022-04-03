@@ -9,13 +9,12 @@
 #include "st.h"
 #include "con/con.hpp"
 #include "boxdraw_data.h"
+#include "config.hpp"
 
 int    isboxdraw(Rune);
 ushort boxdrawindex(Glyph const*);
 
 /* config.h globals */
-extern int const      boxdraw, boxdraw_bold, boxdraw_braille;
-
 extern unsigned short const boxdata[256];
 
 /* Rounded non-negative integers division of n / d  */

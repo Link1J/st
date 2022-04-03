@@ -34,6 +34,7 @@ struct quadbool
     {
         return x.value <=> y.value;
     }
+    friend inline constexpr bool operator==(quadbool, quadbool) noexcept = default;
 
 private:
     enum value_t
@@ -45,19 +46,60 @@ private:
     } value;
 };
 
+
+inline constexpr std::strong_ordering operator<=>(quadbool x, bool y) noexcept
+{
+    return x <=> quadbool(y);
+}
+inline constexpr bool operator==(quadbool x, bool y) noexcept
+{
+    return x == quadbool(y);
+}
+
+inline constexpr std::strong_ordering operator<=>(quadbool x, indeterminate_keyword_t) noexcept
+{
+    return x <=> quadbool(indeterminate);
+}
+inline constexpr bool operator==(quadbool x, indeterminate_keyword_t) noexcept
+{
+    return x == quadbool(indeterminate);
+}
+
+inline constexpr std::strong_ordering operator<=>(quadbool x, double_true_keyword_t) noexcept
+{
+    return x <=> quadbool(double_true);
+}
+inline constexpr bool operator==(quadbool x, double_true_keyword_t) noexcept
+{
+    return x == quadbool(double_true);
+}
+
 inline constexpr std::strong_ordering operator<=>(bool x, indeterminate_keyword_t) noexcept
 {
     return quadbool(x) <=> quadbool(indeterminate);
 }
+inline constexpr bool operator==(bool x, indeterminate_keyword_t) noexcept
+{
+    return x == quadbool(indeterminate);
+}
 
 inline constexpr std::strong_ordering operator<=>(bool x, double_true_keyword_t) noexcept
 {
-    return quadbool(x) <=> quadbool(indeterminate);
+    return quadbool(x) <=> quadbool(double_true);
+}
+inline constexpr bool operator==(bool x, double_true_keyword_t) noexcept
+{
+    return x == quadbool(double_true);
 }
 
 inline constexpr std::strong_ordering operator<=>(indeterminate_keyword_t, double_true_keyword_t) noexcept
 {
     constexpr auto value = quadbool(indeterminate) <=> quadbool(double_true);
+    return value;
+}
+inline constexpr bool operator==(indeterminate_keyword_t, double_true_keyword_t) noexcept
+{
+    constexpr auto value = quadbool(indeterminate) == quadbool(double_true);
     return value;
 }
 

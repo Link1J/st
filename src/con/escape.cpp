@@ -429,14 +429,14 @@ void Con::strhandle()
         break;
 
     case 'k': /* old title set compatibility */
-        xsettitle(strescseq.buf, 0);
+        xsettitle(strescseq.buf.data(), 0);
         return;
 
     case 'P': /* DCS -- Device Control String */
         /* https://gitlab.com/gnachman/iterm2/-/wikis/synchronized-updates-spec */
-        if (strstr(strescseq.buf, "=1s") == strescseq.buf)
+        if (strescseq.buf.find("=1s") == 0)
             tsync_begin(); /* BSU */
-        else if (strstr(strescseq.buf, "=2s") == strescseq.buf)
+        else if (strescseq.buf.find("=2s") == 0)
             tsync_end(); /* ESU */
         return;
 
@@ -452,7 +452,7 @@ void Con::strhandle()
 void Con::strparse()
 {
     int   c;
-    char* p = strescseq.buf;
+    char* p = strescseq.buf.data();
 
     strescseq.narg = 0;
 
@@ -510,10 +510,7 @@ void Con::strdump()
 
 void Con::strreset()
 {
-    strescseq = STREscape{
-        .buf = xrealloc<char>(strescseq.buf, STR_BUF_SIZ),
-        .siz = STR_BUF_SIZ,
-    };
+    strescseq.buf.clear();
 }
 
 /*
@@ -620,7 +617,7 @@ int Con::eschandle(uchar ascii)
     return 1;
 }
 
-void Con::readcolonargs(char** p, int cursor, std::array<std::array<int, ESC_ARG_SIZ>, CAR_PER_ARG> params)
+void Con::readcolonargs(char** p, int cursor, std::array<std::array<int, ESC_ARG_SIZ>, CAR_PER_ARG>& params)
 {
     int i = 0;
     for (; i < CAR_PER_ARG; i++)

@@ -147,9 +147,9 @@ struct CSIEscape
 // ESC type [[ [<priv>] <arg> [;]] <mode>] ESC '\'
 struct STREscape
 {
+    std::array<char, 64>           pad;  //
     char                           type; // ESC type ...
-    char*                          buf;  // allocated raw string
-    size_t                         siz;  // allocation size
+    std::string                    buf;  // 
     size_t                         len;  // raw string length
     std::array<char*, STR_ARG_SIZ> argp; // pointers to the end of nth argument
     int                            narg; // nb of args
