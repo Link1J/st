@@ -112,7 +112,7 @@ void draw(void)
         xdrawcursor(
             cx, con.term.c.y, con.term.line[con.term.c.y][cx], con.term.ocx, con.term.ocy, con.term.line[con.term.ocy][con.term.ocx], con.term.line[con.term.ocy], con.term.col
         );
-    xdrawsixel();
+    xdrawsixel(con.term.row, con.term.col);
     con.term.ocx = cx;
     con.term.ocy = con.term.c.y;
     xfinishdraw();

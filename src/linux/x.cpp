@@ -2037,8 +2037,11 @@ int xstartdraw(void)
     return IS_SET(MODE_VISIBLE);
 }
 
-void xdrawsixel()
+void xdrawsixel(size_t col, size_t row)
 {
+    int n = 0;
+    int nlimit = 256;
+
     for (auto& image : con.term.images)
     {
         if (image.drawable == nullptr)
@@ -2046,31 +2049,86 @@ void xdrawsixel()
             auto depth    = DefaultDepth(xw.dpy, xw.scr);
             auto drawable = XCreatePixmap(xw.dpy, xw.win, image.width, image.height, depth);
 
-            XImage ximage{
-                .width            = int(image.width),
-                .height           = int(image.height),
-                .xoffset          = 0,
-                .format           = ZPixmap,
-                .data             = (char*)image.data.data(),
-                .byte_order       = LSBFirst,
-                .bitmap_unit      = 32,
-                .bitmap_bit_order = MSBFirst,
-                .bitmap_pad       = 32,
-                .depth            = depth,
-                .bytes_per_line   = int(image.width * 4),
-                .bits_per_pixel   = 32,
-            };
+            XImage ximage           = {0};
+            ximage.format           = ZPixmap,
+            ximage.data             = (char*)image.data.data();
+            ximage.width            = image.width,
+            ximage.height           = image.height,
+            ximage.xoffset          = 0,
+            ximage.byte_order       = LSBFirst,
+            ximage.bitmap_bit_order = MSBFirst,
+            ximage.bits_per_pixel   = 32,
+            ximage.bytes_per_line   = image.width * 4,
+            ximage.bitmap_unit      = 32,
+            ximage.bitmap_pad       = 32,
+            ximage.depth            = depth;
 
-            XPutImage(xw.dpy, drawable, dc.gc, &ximage, 0, 0, 0, 0, image.width, image.height);
+            XGCValues gcvalues = {0};
+            auto      gc       = XCreateGC(xw.dpy, drawable, 0, &gcvalues);
+            XPutImage(xw.dpy, drawable, gc, &ximage, 0, 0, 0, 0, image.width, image.height);
             XFlush(xw.dpy);
+            XFreeGC(xw.dpy, gc);
             image.drawable = (void*)drawable;
+        }
+
+        std::vector<XRectangle> rects;
+
+        for (auto y = image.y; y < (image.y + (image.height + win.ch - 1) / win.ch) && y < row; y++)
+        {
+            if (y >= 0)
+            {
+                for (auto x = image.x; x < (image.x + (image.width + win.cw - 1) / win.cw) && x < col; x++)
+                {
+                    // if (line[y][x].mode & ATTR_SIXEL)
+                    {
+                        if (!rects.empty())
+                        {
+                            if (rects[rects.size() - 1].x + rects[rects.size() - 1].width == borderpx + x * win.cw && rects[rects.size() - 1].y == borderpx + y * win.ch)
+                            {
+                                rects[rects.size() - 1].width += win.cw;
+                            }
+                            else
+                            {
+                                XRectangle rect;
+                                rect.x = borderpx + x * win.cw;
+                                rect.y = borderpx + y * win.ch;
+                                rect.width = win.cw;
+                                rect.height = win.ch;
+                                rects.push_back(rect);
+                            }
+                        }
+                        else
+                        {
+                            XRectangle rect;
+                            rect.x = borderpx + x * win.cw;
+                            rect.y = borderpx + y * win.ch;
+                            rect.width = win.cw;
+                            rect.height = win.ch;
+                            rects.push_back(rect);
+                        }
+                    }
+                }
+            }
+            if (rects.size() > 2 && rects[rects.size() - 2].x == rects[rects.size() - 1].x && rects[rects.size() - 2].width == rects[rects.size() - 1].width)
+            {
+                if (rects[rects.size() - 2].y + rects[rects.size() - 2].height == rects[rects.size() - 1].y)
+                {
+                    rects[rects.size() - 2].height += win.ch;
+                    n--;
+                }
+            }
         }
 
         if (con.term.top <= image.y && image.y < con.term.bot)
         {
             XGCValues gcvalues = {0};
             auto      gc       = XCreateGC(xw.dpy, xw.win, 0, &gcvalues);
-            XCopyArea(xw.dpy, (Drawable)image.drawable, xw.buf, gc, 0, 0, image.width, image.height, win.hborderpx + image.x * win.cw, win.vborderpx + image.y * win.ch);
+            if (!rects.empty())
+                XSetClipRectangles(xw.dpy, gc, 0, 0, rects.data(), rects.size(), YXSorted);
+
+            auto v = win.hborderpx + image.x * win.cw;
+            auto h = win.vborderpx + image.y * win.ch;
+            XCopyArea(xw.dpy, (Drawable)image.drawable, xw.buf, gc, 0, 0, image.width, image.height, v, h);
             XFreeGC(xw.dpy, gc);
         }
     }

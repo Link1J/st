@@ -64,5 +64,5 @@ int xstartdraw(void)
 void xximspot(int, int)
 {}
 
-void xdrawsixel()
+void xdrawsixel(size_t, size_t)
 {}

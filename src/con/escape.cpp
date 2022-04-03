@@ -511,6 +511,7 @@ void Con::strdump()
 void Con::strreset()
 {
     strescseq.buf.clear();
+    strescseq.len = 0;
 }
 
 /*

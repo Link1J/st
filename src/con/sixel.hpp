@@ -13,8 +13,8 @@ template<typename C>
     return out;
 }
 
-template<typename T, typename C>
-[[nodiscard]] T take_from_chars(std::basic_string_view<C>& data, std::nullptr_t = nullptr)
+template<typename T>
+[[nodiscard]] T take_from_chars(std::string_view& data)
 {
     T    output;
     auto res = std::from_chars(data.data(), data.data() + data.size(), output);
@@ -22,8 +22,14 @@ template<typename T, typename C>
     return output;
 }
 
-template<typename T, typename C>
-[[nodiscard]] T take_from_chars(std::basic_string_view<C>& data, std::type_identity_t<C> end)
+template<typename T>
+[[nodiscard]] T take_from_chars(std::string_view& data, std::nullptr_t)
+{
+    return take_from_chars<T>(data);
+}
+
+template<typename T>
+[[nodiscard]] T take_from_chars(std::string_view& data, char end)
 {
     auto output = take_from_chars<T>(data);
     if (take_first(data) != end)
@@ -31,10 +37,10 @@ template<typename T, typename C>
     return output;
 }
 
-template<typename... T, typename... A, typename C, typename = std::enable_if_t<sizeof...(T) == sizeof...(A)>>
-[[nodiscard]] auto take_from_chars(std::basic_string_view<C>& data, A&&... args)
+template<typename... T, typename... A>
+[[nodiscard]] std::enable_if_t<sizeof...(T) == sizeof...(A), std::tuple<T...>> take_from_chars(std::string_view& data, A&&... args)
 {
-    return std::make_tuple(take_from_chars<T>(data, std::forward<A>(args))...);
+    return {take_from_chars<T>(data, std::forward<A>(args))...};
 }
 
 using color = uint32_t;
@@ -69,7 +75,9 @@ auto parse_sixel(std::string_view data)
         }
         else if (action == '"')
         {
-            std::tie(std::ignore, std::ignore, width, height) = take_from_chars<size_t, size_t, size_t, size_t>(data, ';', ';', ';', nullptr);
+            auto next = take_from_chars<size_t, size_t, size_t, size_t>(data, ';', ';', ';', nullptr);
+            size_t a, b; // std::ignore
+            std::tie(a, b, width, height) = next;
             pixels.resize(height * width);
         }
         else if (action == '#')
